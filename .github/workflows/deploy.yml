@@ -1,0 +1,76 @@
+# Lint + build en cada PR y push; deploy a S3 + CloudFront en cada push a main (RNF03).
+# Configuración en AWS y variables del repo: docs/infraestructura.md.
+name: CI / Deploy frontend
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Vite incrusta estas variables en el build; ninguna es secreta.
+      VITE_API_URL: ${{ vars.VITE_API_URL }}
+      VITE_AUTH0_DOMAIN: ${{ vars.VITE_AUTH0_DOMAIN }}
+      VITE_AUTH0_CLIENT_ID: ${{ vars.VITE_AUTH0_CLIENT_ID }}
+      VITE_AUTH0_AUDIENCE: ${{ vars.VITE_AUTH0_AUDIENCE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 7
+
+  deploy:
+    needs: build
+    # Sin las variables de AWS configuradas, el deploy se salta en vez de fallar.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.AWS_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-frontend
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write # OIDC: credenciales temporales, sin access keys guardadas
+    env:
+      BUCKET: ${{ vars.S3_BUCKET }}
+      DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Subir a S3
+        run: |
+          # Primero los assets (nombre con hash, caché de un año) y después index.html, para que
+          # un index nuevo nunca apunte a assets que todavía no existen. Los assets viejos no se
+          # borran: un navegador con el index anterior en caché todavía los puede pedir.
+          aws s3 sync dist/assets "s3://$BUCKET/assets" \
+            --cache-control "public, max-age=31536000, immutable"
+          aws s3 sync dist "s3://$BUCKET" --delete --exclude "assets/*" \
+            --cache-control "no-cache"
+
+      - name: Invalidar caché de CloudFront
+        run: |
+          aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION_ID" --paths "/*" \
+            --query Invalidation.Id --output text

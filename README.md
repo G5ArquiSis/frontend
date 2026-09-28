@@ -28,7 +28,7 @@ npm run lint
 
 ## Documentación
 
-Ver [`docs/`](docs/). La documentación general del proyecto (spec, milestones, ADRs) vive en
+Ver [`docs/`](docs/), incluido el [runbook de deploy](docs/infraestructura.md). La documentación general del proyecto (spec, milestones, ADRs) vive en
 [`backend/docs`](https://github.com/G5ArquiSis/backend/tree/main/docs).
 
 ## Reglas del repo
