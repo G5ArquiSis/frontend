@@ -9,6 +9,9 @@ Repos relacionados (organización `G5ArquiSis`):
 - [`backend`](https://github.com/G5ArquiSis/backend): API y nodo de ciudad.
 - [`contratos`](https://github.com/G5ArquiSis/contratos): OpenAPI de la API y contexto compartido.
 
+**Contexto compartido del proyecto:** [`contratos/AGENTS.md`](https://github.com/G5ArquiSis/contratos/blob/main/AGENTS.md).
+Leerlo antes de tocar el código: resume el sistema, los repositorios y las reglas que no se rompen.
+
 ## Correr en local
 
 Requiere Node 20 o superior.
