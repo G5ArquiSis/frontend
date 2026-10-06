@@ -41,3 +41,23 @@ archivos, ejecutó los comandos de AWS y GitHub y abrió los PRs. Los commits co
 - **Verificación:** la URL enlazada responde 200.
 - **Correcciones del integrante:** ninguna.
 - **Referencia:** PR #1, commit `5fef8af`.
+
+## 2026-10-06 — Dominio propio para el frontend
+
+- **Herramienta y modo:** Claude Code, Claude Opus 5.5, agéntico.
+- **Tarea:** servir el frontend en `https://app.melchort.me`, para que la URL no dependa de la
+  distribución de CloudFront.
+- **Prompts relevantes:**
+  > "no deberia usar un subdominio para la api y otro para el frontend"
+
+  > "Pide los dos certificados y pásame los registros"
+
+  > "Prepara la documentacion sin hacer commit"
+- **Qué produjo la IA:** en AWS, el certificado de ACM en `us-east-1` y el cambio de la
+  distribución (dominio alternativo, certificado, TLS 1.2 como mínimo). En el repo, la
+  actualización de `docs/infraestructura.md` y de `.env.example`.
+- **Verificación:** `https://app.melchort.me` responde 200 con el certificado correcto, HTTP
+  redirige a HTTPS y una ruta interna de la SPA responde 200.
+- **Correcciones del integrante:** propuse el subdominio, que la IA había dejado como opcional, y
+  agregué a mano los registros DNS en Namecheap.
+- **Referencia:** rama `docs/api-gateway-dominios`.
