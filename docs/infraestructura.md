@@ -13,7 +13,8 @@ push a main ─→ GitHub Actions (.github/workflows/deploy.yml)
 ```
 
 - El bucket es **privado**: solo la distribución de CloudFront puede leerlo (OAC + bucket policy).
-- CloudFront sirve por HTTPS y redirige HTTP → HTTPS (G05, RNF03).
+- CloudFront sirve por HTTPS y redirige HTTP → HTTPS (G05, RNF03), en el dominio propio
+  `app.melchort.me`.
 - Los 403/404 del bucket se responden con `index.html` y código 200, para que funcionen las rutas
   del lado del cliente de la SPA.
 - `assets/` (nombres con hash) se cachea un año; el resto (`index.html`, íconos) se revalida siempre.
@@ -24,7 +25,9 @@ push a main ─→ GitHub Actions (.github/workflows/deploy.yml)
 |---|---|
 | Bucket S3 | `energyshark-frontend-242627333688` (`us-east-2`) |
 | Distribución CloudFront | `E15BV19G3L2GJX` |
-| URL | https://d1fglzovmxjg55.cloudfront.net |
+| URL | https://app.melchort.me (también responde https://d1fglzovmxjg55.cloudfront.net) |
+| Certificado | ACM en `us-east-1`, para `app.melchort.me` |
+| API que consume | https://api.melchort.me (API Gateway; ver el runbook del backend) |
 | Rol del CI | `energyshark-ci-frontend` |
 
 ## Configuración desde cero
@@ -45,7 +48,14 @@ Reemplazar `ACCOUNT_ID`, `BUCKET` y `DISTRIBUTION_ID` en los archivos de `deploy
    y política inline [`deploy/iam/ci-frontend-policy.json`](../deploy/iam/ci-frontend-policy.json).
    El `sub` es el formato inmutable de GitHub; el prefijo exacto se obtiene con
    `gh api repos/G5ArquiSis/frontend/actions/oidc/customization/sub`.
-6. **Variables del repo** (*Settings → Secrets and variables → Actions → Variables*):
+6. **Dominio propio:**
+   - Pedir el certificado en ACM en **us-east-1** (CloudFront solo acepta certificados de esa
+     región), con validación por DNS, y agregar en el proveedor de DNS (Namecheap) el CNAME de
+     validación. Ese registro no se borra: ACM lo usa para renovar.
+   - En la distribución, agregar `app.melchort.me` como *alternate domain name*, elegir el
+     certificado y *Security policy* `TLSv1.2_2021`.
+   - Agregar en el DNS el CNAME `app` hacia el dominio de la distribución.
+7. **Variables del repo** (*Settings → Secrets and variables → Actions → Variables*):
 
 | Variable | Valor |
 |---|---|
@@ -53,14 +63,25 @@ Reemplazar `ACCOUNT_ID`, `BUCKET` y `DISTRIBUTION_ID` en los archivos de `deploy
 | `AWS_ROLE_ARN` | `arn:aws:iam::242627333688:role/energyshark-ci-frontend` |
 | `S3_BUCKET` | `energyshark-frontend-242627333688` |
 | `CLOUDFRONT_DISTRIBUTION_ID` | `E15BV19G3L2GJX` |
-| `VITE_API_URL` | URL de la API (subdominio de API Gateway) |
+| `VITE_API_URL` | `https://api.melchort.me` |
 | `VITE_AUTH0_DOMAIN`, `VITE_AUTH0_CLIENT_ID`, `VITE_AUTH0_AUDIENCE` | Los entrega el rol D |
 
 Cambiar una variable `VITE_*` requiere un nuevo deploy (*Actions → Run workflow*), porque se
 incrustan al compilar.
 
+## CORS y desarrollo local
+
+El CORS lo responde API Gateway, no el backend. Los orígenes permitidos son `https://app.melchort.me`,
+la URL de CloudFront y `http://localhost:5173`.
+
+- Con `npm run dev` y `VITE_API_URL=https://api.melchort.me` las llamadas funcionan, porque
+  `localhost:5173` está permitido.
+- Contra un backend local (`http://127.0.0.1:8001`) no hay gateway y, por lo tanto, no hay CORS:
+  hay que usar el proxy de desarrollo de Vite (`server.proxy`) para que el navegador vea un solo origen.
+- Un origen nuevo se pide al rol E; no se resuelve agregando CORS en el backend.
+
 ## Pendiente
 
-- Dominio propio (`app.<dominio>`): certificado ACM en **us-east-1** (CloudFront lo exige ahí),
-  validado por DNS en el proveedor del dominio, y agregarlo como *alternate domain name* de la
-  distribución.
+- Completar las variables `VITE_API_URL` y `VITE_AUTH0_*` del repo cuando exista el tenant de Auth0.
+  En Auth0, las URLs de callback, logout y web origin son `https://app.melchort.me` y
+  `http://localhost:5173`.
