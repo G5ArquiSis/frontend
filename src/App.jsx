@@ -1,121 +1,145 @@
 import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import { useAuth0 } from '@auth0/auth0-react'
 import './App.css'
+import CycleHistory from './pages/CycleHistory'
+import Connectivity from './pages/Connectivity'
+import Negotiations from './pages/Negotiations'
+import Messages from './pages/Messages'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [page, setPage] = useState('home')
+
+  const {
+    isAuthenticated,
+    isLoading,
+    loginWithRedirect,
+    logout,
+    user,
+  } = useAuth0()
+
+  if (page !== 'home') {
+    const pages = {
+      'cycle-history': <CycleHistory />,
+      connectivity: <Connectivity />,
+      negotiations: <Negotiations />,
+      messages: <Messages />,
+    }
+
+    return (
+      <div className="app">
+        <header className="header">
+          <div>
+            <h1>EnergyShark</h1>
+            <p>Gestión energética de la ciudad</p>
+          </div>
+
+          {!isLoading && (
+            <div>
+              {isAuthenticated ? (
+                <>
+                  <span>Hola, {user?.name}</span>
+                  <button
+                    onClick={() =>
+                      logout({
+                        logoutParams: {
+                          returnTo: window.location.origin,
+                        },
+                      })
+                    }
+                  >
+                    Cerrar sesión
+                  </button>
+                </>
+              ) : (
+<button
+  onClick={() => {
+    console.log('1. Botón presionado')
+    loginWithRedirect()
+      .then(() => console.log('2. loginWithRedirect terminó'))
+      .catch((error) => console.error('3. Error Auth0:', error))
+  }}
+>
+  Iniciar sesión
+</button>
+              )}
+            </div>
+          )}
+        </header>
+
+        <main className="main">
+          <button onClick={() => setPage('home')}>
+            ← Volver
+          </button>
+
+          {pages[page]}
+        </main>
+      </div>
+    )
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+    <div className="app">
+      <header className="header">
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
+          <h1>EnergyShark</h1>
+          <p>Gestión energética de la ciudad</p>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
 
-      <div className="ticks"></div>
+        {!isLoading && (
+          <div>
+            {isAuthenticated ? (
+              <>
+                <span>Hola, {user?.name}</span>
+                <button
+                  onClick={() =>
+                    logout({
+                      logoutParams: {
+                        returnTo: window.location.origin,
+                      },
+                    })
+                  }
+                >
+                  Cerrar sesión
+                </button>
+              </>
+            ) : (
+<button
+  onClick={() => {
+    console.log('1. Botón presionado')
+    loginWithRedirect()
+      .then(() => console.log('2. loginWithRedirect terminó'))
+      .catch((error) => console.error('3. Error Auth0:', error))
+  }}
+>
+  Iniciar sesión
+</button>
+            )}
+          </div>
+        )}
+      </header>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      <main className="main">
+        <h2>Panel de control</h2>
+
+        <div className="cards">
+          <button onClick={() => setPage('cycle-history')}>
+            Historial de ciclos
+          </button>
+
+          <button onClick={() => setPage('connectivity')}>
+            Conectividad
+          </button>
+
+          <button onClick={() => setPage('negotiations')}>
+            Negociaciones
+          </button>
+
+          <button onClick={() => setPage('messages')}>
+            Mensajes
+          </button>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      </main>
+    </div>
   )
 }
 
