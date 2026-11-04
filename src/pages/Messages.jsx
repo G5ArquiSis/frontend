@@ -94,11 +94,11 @@ function Messages() {
 
   return (
     <div className="messages">
-      <h2>Registro de mensajes</h2>
-
-      <p>
-        Consulta de mensajes duplicados, descartados y respondidos con NACK.
-      </p>
+      <div>
+        <span className="eyebrow">RF05 · Mensajes</span>
+        <h2>Registro de mensajes</h2>
+        <p>Consulta de mensajes duplicados, descartados y respondidos con NACK.</p>
+      </div>
 
       <div className="message-filters">
         <label>

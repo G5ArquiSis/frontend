@@ -61,3 +61,24 @@ archivos, ejecutó los comandos de AWS y GitHub y abrió los PRs. Los commits co
 - **Correcciones del integrante:** propuse el subdominio, que la IA había dejado como opcional, y
   agregué a mano los registros DNS en Namecheap.
 - **Referencia:** rama `docs/api-gateway-dominios`.
+
+## 2026-11-03 — Detalle de ciclo completo (RF01) y conectividad (RF02)
+
+- **Herramienta y modo:** Claude Code, Claude Opus 5.5, agéntico.
+- **Tarea:** que la vista de ciclos muestre todo lo que pide RF01 y que la de conectividad se
+  mantenga al día (RF02), con estilos que se habían perdido en un merge anterior.
+- **Prompts relevantes:**
+  > "Quiero que hagas una revision punto por punto viendo que se cumple y que falta."
+
+  > "primero corrijamos todo lo necesario para que la entrega 1 este completa"
+- **Qué produjo la IA:** `src/format.js` (formatos y estados de reporte, ventana y
+  negociación); la reescritura de `CycleHistory.jsx`, que agrega el status-statement con el tope
+  de precio, los transfers, demand-statements, negociaciones, el negotiation-report enviado y la
+  línea de operaciones con la última destacada; `Connectivity.jsx`, que vuelve a consultar cada
+  30 s, muestra la distancia en km y el costo de transporte con 6 decimales; la navegación de
+  `App.jsx` sin `console.log`; y los estilos de `index.css` y `App.css` en modo claro y oscuro.
+- **Verificación:** `npm run lint` sin errores (solo avisos `set-state-in-effect` por el fetch
+  inicial) y `npm run build` correcto. Prueba manual en `localhost:5173` contra la API de
+  producción con sesión de Auth0, revisando el ciclo `cycle-249797` y las cuatro vistas.
+- **Correcciones del integrante:** ninguna hasta ahora (pendiente de revisión en el PR).
+- **Referencia:** rama `feat/rf01-rf02-detalle-y-conectividad`.
