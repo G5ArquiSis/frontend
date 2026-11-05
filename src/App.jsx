@@ -1,17 +1,8 @@
 import { useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import './App.css'
-import CycleHistory from './pages/CycleHistory'
-import Connectivity from './pages/Connectivity'
-import Negotiations from './pages/Negotiations'
-import Messages from './pages/Messages'
-
-const PAGES = [
-  { id: 'cycle-history', label: 'Historial de ciclos', Component: CycleHistory },
-  { id: 'connectivity', label: 'Conectividad', Component: Connectivity },
-  { id: 'negotiations', label: 'Negociaciones', Component: Negotiations },
-  { id: 'messages', label: 'Mensajes', Component: Messages },
-]
+// Las páginas se registran solas: ver src/pages/registry.js.
+import { PAGES } from './pages/registry'
 
 function App() {
   const [pageId, setPageId] = useState(PAGES[0].id)
