@@ -29,6 +29,33 @@ npm run build               # genera dist/, que es lo que se sube a S3
 npm run lint
 ```
 
+## Agregar una página
+
+Cada página es un archivo propio en `src/pages/` y se registra sola: no hay que tocar
+`App.jsx` ni ningún archivo compartido (ver `src/pages/registry.js`).
+
+```jsx
+import { useApi, usePolling } from '../api'
+
+function MarketBook() {
+  const api = useApi()
+  // Consulta al montar y cada 5 s; se pausa mientras la pestaña está oculta.
+  const { data, error, loading, refresh } = usePolling(() => api.get('/market/book'), 5000)
+  // ...
+}
+
+MarketBook.meta = { id: 'market', label: 'Mercado', order: 25 }
+export default MarketBook
+```
+
+- `useApi()` agrega el token de Auth0 y la URL base. Tiene `get`, `post`, `put`, `patch` y
+  `delete`. Un error HTTP lanza un `ApiError` con `status` y `body`; por ejemplo, el `reason`
+  de un 409 viene en `body.detail.reason`.
+- `order` fija la posición en la barra: Historial 10, Conectividad 20, Negociaciones 30,
+  Mensajes 40.
+- Una ruta nueva del backend debe estar protegida en Nginx antes de usarla (ver
+  `backend/docs/infraestructura.md` § Operación).
+
 ## Documentación
 
 Ver [`docs/`](docs/), incluido el [runbook de deploy](docs/infraestructura.md). La documentación general del proyecto (spec, milestones, ADRs) vive en

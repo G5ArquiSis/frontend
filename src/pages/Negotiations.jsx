@@ -457,4 +457,6 @@ function Negotiations() {
   )
 }
 
+Negotiations.meta = { id: 'negotiations', label: 'Negociaciones', order: 30 }
+
 export default Negotiations

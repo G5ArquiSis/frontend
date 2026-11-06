@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
-import { useAuth0 } from '@auth0/auth0-react'
+import { useApi, usePolling } from '../api'
 import { formatDate, formatNumber } from '../format'
 
 // RF02: la distance-table vigente, actualizada cuando la central publique cambios. La
@@ -7,37 +6,15 @@ import { formatDate, formatNumber } from '../format'
 const REFRESH_MS = 30_000
 
 function Connectivity() {
-  const { getAccessTokenSilently } = useAuth0()
-
-  const [connectivity, setConnectivity] = useState(null)
-  const [checkedAt, setCheckedAt] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  const loadConnectivity = useCallback(async () => {
-    try {
-      const token = await getAccessTokenSilently()
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/connectivity`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!response.ok) throw new Error(`Error ${response.status}`)
-
-      setConnectivity(await response.json())
-      setCheckedAt(new Date())
-      setError('')
-    } catch (err) {
-      console.error(err)
-      setError('No se pudo cargar la información de conectividad.')
-    } finally {
-      setLoading(false)
-    }
-  }, [getAccessTokenSilently])
-
-  useEffect(() => {
-    loadConnectivity()
-    const interval = setInterval(loadConnectivity, REFRESH_MS)
-    return () => clearInterval(interval)
-  }, [loadConnectivity])
+  const api = useApi()
+  const {
+    data: connectivity,
+    error: loadError,
+    loading,
+    updatedAt: checkedAt,
+    refresh: loadConnectivity,
+  } = usePolling(() => api.get('/connectivity'), REFRESH_MS)
+  const error = loadError ? 'No se pudo cargar la información de conectividad.' : ''
 
   return (
     <section className="page">
@@ -112,5 +89,7 @@ function Connectivity() {
     </section>
   )
 }
+
+Connectivity.meta = { id: 'connectivity', label: 'Conectividad', order: 20 }
 
 export default Connectivity
