@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useAuth0 } from '@auth0/auth0-react'
+import { useApi } from '../api'
 import {
   formatCredits,
   formatDate,
@@ -16,7 +16,7 @@ import {
 // fue la última operación aplicada.
 
 function CycleHistory() {
-  const { getAccessTokenSilently } = useAuth0()
+  const api = useApi()
 
   const [cycles, setCycles] = useState([])
   const [page, setPage] = useState(1)
@@ -26,22 +26,10 @@ function CycleHistory() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const fetchJson = useCallback(
-    async (path) => {
-      const token = await getAccessTokenSilently()
-      const response = await fetch(`${import.meta.env.VITE_API_URL}${path}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!response.ok) throw new Error(`Error ${response.status}`)
-      return response.json()
-    },
-    [getAccessTokenSilently],
-  )
-
   const loadCycles = useCallback(async () => {
     try {
       setError('')
-      const data = await fetchJson(`/cycles?page=${page}&limit=25`)
+      const data = await api.get(`/cycles?page=${page}&limit=25`)
       setCycles(data.items)
       setBudgetBalance(data.budgetBalance)
     } catch (err) {
@@ -50,7 +38,7 @@ function CycleHistory() {
     } finally {
       setLoading(false)
     }
-  }, [fetchJson, page])
+  }, [api, page])
 
   useEffect(() => {
     loadCycles()
@@ -60,7 +48,7 @@ function CycleHistory() {
     try {
       setDetailLoading(true)
       setError('')
-      setSelectedCycle(await fetchJson(`/cycles/${cycleId}`))
+      setSelectedCycle(await api.get(`/cycles/${cycleId}`))
     } catch (err) {
       console.error(err)
       setError('No se pudo cargar el detalle del ciclo.')
@@ -367,5 +355,7 @@ function Fact({ label, value, mono = false }) {
     </div>
   )
 }
+
+CycleHistory.meta = { id: 'cycle-history', label: 'Historial de ciclos', order: 10 }
 
 export default CycleHistory

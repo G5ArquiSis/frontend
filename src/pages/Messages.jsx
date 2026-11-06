@@ -187,4 +187,6 @@ function Messages() {
   )
 }
 
+Messages.meta = { id: 'messages', label: 'Mensajes', order: 40 }
+
 export default Messages
