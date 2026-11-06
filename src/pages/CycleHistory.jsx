@@ -7,7 +7,6 @@ import {
   formatNumber,
   formatSigned,
   kindLabel,
-  negotiationState,
   reportStatus,
   windowStatus,
 } from '../format'
@@ -20,6 +19,7 @@ function CycleHistory() {
   const { getAccessTokenSilently } = useAuth0()
 
   const [cycles, setCycles] = useState([])
+  const [page, setPage] = useState(1)
   const [budgetBalance, setBudgetBalance] = useState(null)
   const [selectedCycle, setSelectedCycle] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -41,7 +41,7 @@ function CycleHistory() {
   const loadCycles = useCallback(async () => {
     try {
       setError('')
-      const data = await fetchJson('/cycles')
+      const data = await fetchJson(`/cycles?page=${page}&limit=25`)
       setCycles(data.items)
       setBudgetBalance(data.budgetBalance)
     } catch (err) {
@@ -50,7 +50,7 @@ function CycleHistory() {
     } finally {
       setLoading(false)
     }
-  }, [fetchJson])
+  }, [fetchJson, page])
 
   useEffect(() => {
     loadCycles()
@@ -107,13 +107,17 @@ function CycleHistory() {
               <span className="count-badge">{cycles.length}</span>
             </div>
 
+            <div className="page-meta">
+              <button disabled={page === 1} onClick={() => setPage(page - 1)}>Anterior</button>
+              <span>Página {page}</span>
+              <button disabled={cycles.length < 25} onClick={() => setPage(page + 1)}>Siguiente</button>
+            </div>
             {cycles.map((cycle) => {
               const report = reportStatus(cycle)
               return (
                 <button
-                  className={`cycle-item ${
-                    selectedCycle?.cycleId === cycle.cycleId ? 'cycle-item-active' : ''
-                  }`}
+                  className={`cycle-item ${selectedCycle?.cycleId === cycle.cycleId ? 'cycle-item-active' : ''
+                    }`}
                   key={cycle.cycleId}
                   onClick={() => handleSelectCycle(cycle.cycleId)}
                 >
@@ -168,8 +172,8 @@ function CycleDetail({ cycle }) {
       </div>
 
       <div className="detail-grid">
-        <Metric label="Balance energético final" value={formatEnergy(cycle.balances.energy)} />
-        <Metric label="Presupuesto al cierre" value={formatCredits(cycle.balances.budget)} />
+        <Metric label="Balance energético registrado" value={formatEnergy(cycle.balances.energy)} />
+        <Metric label="Presupuesto registrado" value={formatCredits(cycle.balances.budget)} />
         <Metric
           label="Última operación aplicada"
           value={lastOperation ? kindLabel(lastOperation.kind) : 'Sin operaciones'}
@@ -194,7 +198,7 @@ function CycleDetail({ cycle }) {
               {cycle.transfers.map((transfer) => (
                 <tr key={transfer.idpk} className={transfer.isLast ? 'row-last' : ''}>
                   <td>{formatSigned(transfer.budgetDelta, 'créditos')}</td>
-                  <td>{formatCredits(transfer.message.data?.penalty)}</td>
+                  <td>{formatCredits(transfer.message.data?.penalty?.amount)}</td>
                   <td>{transfer.message.data?.becauseOf ? 'Pago de una venta' : 'Presupuesto'}</td>
                   <td>{formatDate(transfer.appliedAt)}</td>
                 </tr>
@@ -204,67 +208,13 @@ function CycleDetail({ cycle }) {
         )}
       </Section>
 
-      <Section title="Demand-statements aplicados" empty="No hubo demand-statements.">
-        {cycle.demandStatements.length > 0 && (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Cantidad</th>
-                <th>Valor por kWh</th>
-                <th>Energía</th>
-                <th>Presupuesto</th>
-                <th>Aplicado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cycle.demandStatements.map((demand) => (
-                <tr key={demand.idpk} className={demand.isLast ? 'row-last' : ''}>
-                  <td>{formatEnergy(demand.message.data?.balance?.quantity)}</td>
-                  <td>{formatCredits(demand.message.data?.balance?.valuePerKwh)}</td>
-                  <td>{formatSigned(demand.energyDelta, 'kWh')}</td>
-                  <td>{formatSigned(demand.budgetDelta, 'créditos')}</td>
-                  <td>{formatDate(demand.appliedAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Section>
-
-      <Section title="Negociaciones voluntarias" empty="No se negoció en este ciclo.">
-        {cycle.negotiations.length > 0 && (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Dirección</th>
-                <th>Cantidad</th>
-                <th>Precio</th>
-                <th>Monto</th>
-                <th>Intentos</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cycle.negotiations.map((negotiation) => {
-                const state = negotiationState(negotiation.state)
-                return (
-                  <tr key={negotiation.id}>
-                    <td>{negotiation.direction === 'take' ? 'Compra' : 'Venta'}</td>
-                    <td>{formatEnergy(negotiation.confirmedEnergy ?? negotiation.quantity)}</td>
-                    <td>{formatCredits(negotiation.confirmedPrice ?? negotiation.pricePerEnergy)}</td>
-                    <td>{formatCredits(negotiation.amount)}</td>
-                    <td>{negotiation.attempts}</td>
-                    <td>
-                      <span className={`status-badge status-${state.tone}`}>{state.label}</span>
-                      {negotiation.reason && <span className="muted"> {negotiation.reason}</span>}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
-      </Section>
+      <RawMessages title="Oferta y actualizaciones / bids enviados y recibidos" messages={cycle.marketMessages} />
+      <RawMessages title="Swaps: estado y eventos" messages={cycle.swaps} />
+      <RawMessages title="Transporte cobrado" messages={cycle.walletEvents?.filter(message => message.type === 'trade-recorded')} />
+      <RawMessages title="Liquidación de desbalance" messages={cycle.walletEvents?.filter(message => message.type === 'imbalance-settlement')} />
+      <RawMessages title="Asientos oficiales de wallet" messages={cycle.walletStatement} />
+      <Reconciliation value={cycle.reconciliation} />
+      <RawMessages title="Tabla de distancias recibida" messages={cycle.distanceTable ? [cycle.distanceTable] : []} />
 
       <div className="card">
         <div className="card-heading">
@@ -275,7 +225,8 @@ function CycleDetail({ cycle }) {
           <dl className="facts">
             <Fact label="Budget reportado" value={formatCredits(cycle.report.data?.budgetBalance)} />
             <Fact label="Energía reportada" value={formatEnergy(cycle.report.data?.energyBalance)} />
-            <Fact label="Enviado" value={formatDate(cycle.reportSentAt)} />
+            <Fact label="Encolado" value={formatDate(cycle.reportQueuedAt)} />
+            <Fact label="Publicación confirmada" value={formatDate(cycle.reportSentAt)} />
             <Fact label="idpk" value={cycle.report.idpk} mono />
           </dl>
         ) : (
@@ -332,8 +283,6 @@ function StatusStatement({ message }) {
   const generation = Number(energy.generationCapacity)
   const consumption = Number(energy.consumption)
   const cost = Number(energy.generationCost)
-  // Mismas fórmulas que la central: el tope es round2(1.05 × generationCost).
-  const cap = Math.round(1.05 * cost * 100) / 100
 
   return (
     <div className="card">
@@ -344,12 +293,49 @@ function StatusStatement({ message }) {
         <Fact label="Capacidad de generación" value={formatEnergy(generation)} />
         <Fact label="Consumo proyectado" value={formatEnergy(consumption)} />
         <Fact label="Costo de generación" value={`${formatNumber(cost)} créditos/kWh`} />
-        <Fact label="Vendible como máximo" value={formatEnergy(Math.max(0, generation - consumption))} />
-        <Fact label="Tope de precio" value={`${formatNumber(cap)} créditos/kWh`} />
+        <Fact label="Energía vendible" value={formatEnergy(energy.sellable)} />
+        <Fact label="Recompra" value={formatCredits(message.data?.market?.buybackPrice)} />
+        <Fact label="Desbalance" value={formatCredits(message.data?.market?.imbalancePrice)} />
+        <Fact label="Última oferta" value={formatDate(message.data?.market?.lastOfferAt)} />
+        <Fact label="Último bid" value={formatDate(message.data?.market?.lastBidAt)} />
+        <Fact label="Cierre de mercado" value={formatDate(message.data?.market?.closesAt)} />
         <Fact label="Válido hasta" value={formatDate(message.data?.validUntil)} />
       </dl>
     </div>
   )
+}
+
+function Reconciliation({ value }) {
+  return <Section title="Reconciliación con wallet" empty="Todavía no se ha conciliado este ciclo.">
+    {value && <>
+      <p>Consultada: {formatDate(value.checkedAt)} · Asientos nuevos: {value.entriesImported}</p>
+      <p>El delta registrado es wallet menos saldo local antes de corregir. Los saldos son los de esa consulta.</p>
+      <table className="data-table"><thead><tr><th>Activo</th><th>Local disponible / retenido</th><th>Wallet disponible / retenido</th><th>Delta disponible / retenido</th></tr></thead>
+        <tbody>{Object.keys(value.wallet ?? {}).map(asset => <tr key={asset}>
+          <td>{asset}</td>
+          <td>{value.localBefore?.[asset]?.available} / {value.localBefore?.[asset]?.held}</td>
+          <td>{value.wallet[asset].available} / {value.wallet[asset].held}</td>
+          <td>{value.delta?.[asset]?.available} / {value.delta?.[asset]?.held}</td>
+        </tr>)}</tbody>
+      </table>
+    </>}
+  </Section>
+}
+
+function RawMessages({ title, messages = [] }) {
+  return <Section title={title} empty="Sin registros para este ciclo.">
+    {messages.length > 0 && messages.map((message, index) => (
+      <details key={message.idpk ?? message.swapId ?? message.entryId ?? index}>
+        <summary>{message.type ?? message.status ?? message.kind ?? 'Detalle'} · {message.swapId ?? message.entryId ?? message.idpk ?? ''}
+          {message.cityId && ` · ${message.cityId}`}
+          {message.data?.quantity != null && ` · ${message.data.quantity} kWh`}
+          {message.data?.transportTotal != null && ` · transporte ${formatCredits(message.data.transportTotal)}`}
+          {message.data?.total != null && ` · ${formatCredits(message.data.total)}`}
+        </summary>
+        <pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{JSON.stringify(message, null, 2)}</pre>
+      </details>
+    ))}
+  </Section>
 }
 
 function Section({ title, empty, children }) {
