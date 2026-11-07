@@ -42,6 +42,9 @@ function MarketAdmin() {
   async function saveStrategy(event) {
     event.preventDefault()
     setNotice('')
+    // Sin la estrategia real cargada, el formulario muestra valores por defecto: guardarlos
+    // pisaría la estrategia vigente.
+    if (!strategy.data) return
     const payload = {
       ...values,
       pricePerEnergy: values.priceMode === 'fixed'
@@ -75,6 +78,8 @@ function MarketAdmin() {
   async function saveOffer(event) {
     event.preventDefault()
     setNotice('')
+    // Igual que arriba: sin la oferta cargada se mandaría offerQuantity: null y se borraría.
+    if (!offer.data) return
     const payload = {}
     if (offerValues.priceMode !== undefined) payload.priceMode = offerValues.priceMode
     if (offerValues.priceMode === 'fixed') {
@@ -176,7 +181,7 @@ function MarketAdmin() {
         </div>
         <div className="form-actions">
           <button type="button" className="secondary-button" onClick={() => setDraft(null)}>Descartar</button>
-          <button type="submit" className="primary-button" disabled={savingStrategy || strategy.loading}>
+          <button type="submit" className="primary-button" disabled={savingStrategy || !strategy.data}>
             {savingStrategy ? 'Guardando…' : 'Guardar estrategia'}
           </button>
         </div>
@@ -213,7 +218,7 @@ function MarketAdmin() {
         </div>
         <div className="form-actions">
           <button type="button" className="secondary-button" onClick={() => setOfferDraft(null)}>Descartar</button>
-          <button type="submit" className="primary-button" disabled={savingOffer || offer.loading}>
+          <button type="submit" className="primary-button" disabled={savingOffer || !offer.data}>
             {savingOffer ? 'Guardando…' : 'Guardar oferta'}
           </button>
         </div>
