@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useApi } from '../api'
+import { CycleMarket } from './CycleMarket'
 import {
   formatCredits,
   formatDate,
@@ -11,7 +12,8 @@ import {
   windowStatus,
 } from '../format'
 
-// RF01: para cada ciclo, su status-statement, los fondos recibidos, los demand-statements
+// RF01: para cada ciclo, su status-statement, los fondos recibidos, la oferta, los bids
+// enviados y recibidos, los swaps y el transporte (CycleMarket.jsx), los demand-statements
 // aplicados, las negociaciones, el negotiation-report enviado, los balances finales y cuál
 // fue la última operación aplicada.
 
@@ -196,10 +198,7 @@ function CycleDetail({ cycle }) {
         )}
       </Section>
 
-      <RawMessages title="Oferta y actualizaciones / bids enviados y recibidos" messages={cycle.marketMessages} />
-      <RawMessages title="Swaps: estado y eventos" messages={cycle.swaps} />
-      <RawMessages title="Transporte cobrado" messages={cycle.walletEvents?.filter(message => message.type === 'trade-recorded')} />
-      <RawMessages title="Liquidación de desbalance" messages={cycle.walletEvents?.filter(message => message.type === 'imbalance-settlement')} />
+      <CycleMarket cycle={cycle} />
       <RawMessages title="Asientos oficiales de wallet" messages={cycle.walletStatement} />
       <Reconciliation value={cycle.reconciliation} />
       <RawMessages title="Tabla de distancias recibida" messages={cycle.distanceTable ? [cycle.distanceTable] : []} />
